@@ -2859,6 +2859,22 @@
         break;
       }
 
+      case 'add_mapping_layer': {
+        const { name, shapeType } = (msg as unknown) as {
+          name: string;
+          shapeType: import('./lib/types').LayerShapeType | null;
+        };
+        // project.addLayer() handles UUID, license limits, the crosshair
+        // placement shader, and selection. The reactive `$: syncState()`
+        // below pushes the new layer to the server and all mobile clients.
+        project.addLayer(
+          typeof name === 'string' && name ? name : 'Mobile Layer',
+          'media',
+          shapeType ?? undefined,
+        );
+        break;
+      }
+
       case 'mesh_point': {
         const { layerId, row, col, position } = (msg as unknown) as {
           layerId: string;
