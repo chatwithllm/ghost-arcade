@@ -436,6 +436,20 @@ function handleMessage(sender, msg) {
       broadcastAll(msg);
       break;
 
+    case 'add_mapping_layer': {
+      // Mobile requests a new mapping layer. Validate, then forward to the
+      // desktop which owns creation (UUID, license limits, crosshair shader,
+      // selection). The desktop's reactive syncState() pushes the new layer
+      // to all clients via 'sync' — the server does NOT mutate projectState
+      // here, mirroring 'set_layer_source' and the VJ commands.
+      const rawName = typeof msg.name === 'string' ? msg.name.trim() : '';
+      const name = rawName.length > 0 && rawName.length <= 64 ? rawName : 'Mobile Layer';
+      const shapeType = ALLOWED_LAYER_SHAPES.has(msg.shapeType) ? msg.shapeType : null;
+      console.log(`[*] Add mapping layer: "${name}"${shapeType ? ` (${shapeType})` : ''}`);
+      broadcast(sender, { type: 'add_mapping_layer', name, shapeType });
+      break;
+    }
+
     case 'add_mapping_layer_effect': {
       const layer = projectState.layers.find(l => l.id === msg.layerId);
       if (layer && msg.effect && typeof msg.effect.id === 'string' && typeof msg.effect.type === 'string') {

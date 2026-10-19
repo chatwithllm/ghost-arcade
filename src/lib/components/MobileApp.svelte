@@ -1866,6 +1866,17 @@
     }
   }
 
+  function sendAddLayer() {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      const count = (projectState?.layers?.length || 0) + 1;
+      ws.send(JSON.stringify({
+        type: 'add_mapping_layer',
+        name: `Layer ${count}`,
+        shapeType: null, // plain rectangle; change later via the shape panel
+      }));
+    }
+  }
+
   function sendParameter(layerId: string, param: string, value: number | string | boolean) {
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({
@@ -3265,9 +3276,19 @@
     <div class="layer-selector mapping-layer-selector">
       <div class="layer-selector-heading">
         <h3>Layers</h3>
-        {#if selectedLayer}
-          <span class="layer-effect-chip">{selectedLayer.effects?.length || 0} FX</span>
-        {/if}
+        <div class="layer-heading-actions">
+          {#if selectedLayer}
+            <span class="layer-effect-chip">{selectedLayer.effects?.length || 0} FX</span>
+          {/if}
+          <button
+            class="layer-add-btn"
+            onclick={sendAddLayer}
+            aria-label="Add layer"
+            title="Add layer"
+          >
+            +
+          </button>
+        </div>
       </div>
       <div class="layer-list">
         {#if projectState?.layers.length}
@@ -4935,6 +4956,27 @@
     justify-content: space-between;
     gap: 8px;
     margin-bottom: 8px;
+  }
+  .layer-heading-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .layer-add-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid #BB86FC;
+    background: transparent;
+    color: #BB86FC;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .layer-add-btn:active {
+    background: #BB86FC;
+    color: #0a0a0c;
   }
 
   .layer-selector h3 {
