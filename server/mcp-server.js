@@ -232,11 +232,11 @@ server.tool('set_macro', 'Set a VJ macro value.',
     catch (e) { return fail('set_macro', a, e.message); }
   });
 
-server.tool('recall_snapshot', 'Recall a saved VJ snapshot.',
-  { name: z.string() },
-  async (a) => {
-    try { const r = await command('recall_vj_snapshot', a); audit('recall_snapshot', a, true); return ok(`Recalled snapshot "${a.name}".`, r.state); }
-    catch (e) { return fail('recall_snapshot', a, e.message); }
+server.tool('recall_snapshot', 'Recall a saved VJ snapshot slot (0-15).',
+  { index: z.number().int().min(0).max(15) },
+  async ({ index }) => {
+    try { const r = await command('recall_vj_snapshot', { index }); audit('recall_snapshot', { index }, true); return ok(`Recalled snapshot slot ${index}.`, r.state); }
+    catch (e) { return fail('recall_snapshot', { index }, e.message); }
   });
 
 server.tool('tap_tempo', 'Tap tempo (also clears manual BPM override via vj_clear_manual_bpm if needed).', {},
@@ -299,6 +299,10 @@ server.tool('set_effect_params', 'Update effect parameters on a mapping layer or
       .describe('for vj_layer / vj_clip scopes'),
   },
   async (a) => {
+    // vj_layer scope needs a concrete layerIndex — the desktop ignores the
+    // message without it, so fail loudly instead of silently doing nothing.
+    if (a.scope === 'vj_layer' && a.vjTarget?.layerIndex === undefined)
+      return fail('set_effect_params', a, 'vj_layer scope requires vjTarget.layerIndex.');
     const type = { mapping_layer: 'update_mapping_layer_effect_params', vj_layer: 'update_vj_layer_effect_params', vj_comp: 'update_vj_comp_effect_params', vj_clip: 'update_vj_clip_effect_params' }[a.scope];
     try {
       const r = await command(type, { layerId: a.layerId, effectId: a.effectId, params: a.params, ...a.vjTarget });
@@ -313,9 +317,10 @@ server.tool('set_layer_shape', 'Set the mask/shape of a mapping layer.',
     shape: z.enum(['rectangle', 'circle', 'ellipse', 'triangle', 'polygon', 'star', 'line', 'polyline', 'custom']),
     params: z.record(z.string(), z.union([z.number(), z.string(), z.boolean()])).optional(),
   },
-  async (a) => {
-    try { const r = await command('set_mapping_layer_shape', a); audit('set_layer_shape', a, true); return ok(`Layer shape → ${a.shape}.`, r.state); }
-    catch (e) { return fail('set_layer_shape', a, e.message); }
+  async ({ layerId, shape, params }) => {
+    // NOTE: the WS protocol field is `shapeType`, not `shape` — translate here.
+    try { const r = await command('set_mapping_layer_shape', { layerId, shapeType: shape, params }); audit('set_layer_shape', { layerId, shape }, true); return ok(`Layer shape → ${shape}.`, r.state); }
+    catch (e) { return fail('set_layer_shape', { layerId, shape }, e.message); }
   });
 
 // — output —
